@@ -1,3 +1,5 @@
+set -i
+
 echo 'Run yum update.'
 sudo yum -y update
 
@@ -10,6 +12,7 @@ nginx \
 httpd \
 gcc \
 gcc-c++ \
+openssl \
 openssl-devel \
 zlib-devel \
 make \
@@ -22,6 +25,7 @@ httpd-devel \
 curl-devel \
 ncurses-devel \
 gdbm-devel \
+readline \
 readline-devel \
 sqlite-devel \
 ruby-devel \
@@ -53,15 +57,28 @@ git clone https://github.com/sstephenson/ruby-build.git ~/.rbenv/plugins/ruby-bu
 fi
 echo 'export PATH="$HOME/.rbenv/bin:$PATH"' >> ~/.bash_profile
 echo 'eval "$(rbenv init -)"' >> ~/.bash_profile
-sudo .rbenv/plugins/ruby-build/install.sh
+source ~/.bash_profile
+sudo /root/.rbenv/plugins/ruby-build/install.sh
 echo 'Install ruby'
 rbenv install -v 2.5.1
 rbenv rehash
 rbenv global 2.5.1
 sudo chmod o+x /home/vagrant
+gem install bundler
 gem install passenger --no-ri --no-rdoc -V
 rbenv rehash
 passenger-install-apache2-module
+passenger-install-apache2-module --snippet > ~/passenger.conf
+sudo mv ~/passenger.conf /etc/httpd/conf.d/
+sudo cp /vagrant/httpd/rails.conf /etc/httpd/conf.d/rails.conf
+sudo ln -s /vagrant/blog/public /var/www/html/blog
+
+echo 'Setup rails application'
+cd /vagrant/blog
+bundle install
+echo 'export SECRET_KEY_BASE=27f1438e5351619c94532a5cadad46da4726b1f86c92bb8acb037923a4905ad7da6e68a9bc8a0567d9d0cdedac1c30c9a6ad0367e09f0a92a5bf24e3689ee26f' >> ~/.bashrc
+source ~/.bashrc
+rails db:migrate RAILS_ENV=development
 
 echo 'Set httpd.conf'
 sudo mv /etc/httpd/conf/httpd.conf{,.bak}
